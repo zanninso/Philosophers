@@ -18,10 +18,14 @@ _Bool init(t_env *env)
 {
     unsigned int i;
 
-    i = 0; 
     env->philos = malloc(env->philos_number * sizeof(t_philo));
     env->forks = malloc(env->philos_number * sizeof(t_fork));
     env->thread_ids = malloc(env->philos_number * sizeof(pthread_t));
+    i = 0; 
+    if (env->philos)
+        while (i < env->philos_number)
+            set_fork_ids(i++, env);
+    i = 0; 
     if (env->forks)
         while (i < env->philos_number)
         {

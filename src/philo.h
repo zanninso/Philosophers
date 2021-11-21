@@ -8,6 +8,13 @@
 #include <unistd.h>
 #include <sys/time.h>
 
+#define FORK_TAKEN_MSG "%d fork %d has been taken\n"
+#define FORK_FRIED_MSG "%d fork %d has been fried\n"
+#define EATING_MSG "%d %d is eating\n"
+#define SLEEPING_MSG "%d %d is sleeping\n"
+#define THINKING_MSG "%d %d is thinking\n"
+#define DIED_MSG "%d %d died\n"
+#define BORN_MSG "%d %d born\n"
 
 typedef struct timeval t_time;
 
@@ -22,6 +29,8 @@ typedef struct s_philo
     unsigned int id;
     unsigned int eat_counter;
     unsigned int should_eat_counter;
+    unsigned int left_fork;
+    unsigned int right_fork;
     int status;
 }               t_philo;
 
@@ -69,7 +78,7 @@ enum
     FORK_FREE
 };
 
-int fork_id(unsigned int philo_id, int direction, t_env *env);
+void set_fork_ids(unsigned int philo_id, t_env *env);
 void set_forks(unsigned int philo_id, int val, t_env *env);
 void set_forks_with_lock(unsigned int philo_id, int val, t_env *env);
 void get_forks(unsigned int philo_id, t_env *env);
@@ -78,5 +87,10 @@ void *ft_memcpy(void *vdest, void *vsrc, size_t size);
 
 long long	ft_atoi(const char *s);
 void *born_philo(void *venv);
+
+void philo_says(unsigned int id, size_t time, const char *msg, t_env *env);
+_Bool eating(unsigned int id, t_env *env);
+size_t get_timestamp();
+
 
 #endif

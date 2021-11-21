@@ -1,6 +1,6 @@
 #include "philo.h"
 
-size_t get_timestamp() 
+inline size_t get_timestamp() 
 {
     t_time  now;
     gettimeofday(&now, NULL);
@@ -16,25 +16,28 @@ unsigned int get_id(t_env *env)
     return (id);
 }
 
-static void philo_says(unsigned int id, const char *msg, t_env *env)
+inline void philo_says(unsigned int id, size_t time, const char *msg, t_env *env)
 {
     pthread_mutex_lock(&env->printer_lock);
-    printf(msg, id);
+    printf(msg, time, id);
     pthread_mutex_unlock(&env->printer_lock);
 }
 
-_Bool eating(unsigned int id, t_env *env)
+_Bool inline eating(unsigned int id, t_env *env)
 {
     const size_t start_time = get_timestamp();
+
+    env->philos[id].status = WAITING_FORKS;
     // add condition to stop trying to eat if is already eat should_eat_counter times.
-    get_forks(id, env);
-    while (env->philos[id].status == WAITING_FORKS)
+    while (true)
     {
+        get_forks(id, env);
         if (env->is_end || (get_timestamp() - start_time) >= env->die_time)
             return (false);
-        get_forks(id, env);
+        if (env->philos[id].status != WAITING_FORKS)
+            break;
     }
-    philo_says(id ,"philo %d: am eating\n", env);
+    philo_says(id , get_timestamp(), EATING_MSG, env);
     env->philos[id].eat_counter++;
     usleep(env->eating_time);
     set_forks_with_lock(id, FORK_FREE, env);
@@ -49,14 +52,14 @@ void *born_philo(void *venv)
 
     env = venv;
     id = get_id(env);
-    philo_says(id, "philo %d born\n", env);
-    while (!env->is_end && eating(id, env))
+    philo_says(id, get_timestamp(), BORN_MSG, env);
+    while (eating(id, env))
     {
-        philo_says(id ,"philo %d: am sleeping\n", env);
+        philo_says(id ,get_timestamp(), SLEEPING_MSG, env);
         usleep(env->sleeping_time);
-        philo_says(id ,"philo %d: am thinking\n", env);
+        philo_says(id ,get_timestamp(), THINKING_MSG, env);
     }
     env->is_end = true;
-    philo_says(id, "%d am die stop working guys\n", env);
+    philo_says(id, get_timestamp(), DIED_MSG, env);
     return (NULL);
 }
