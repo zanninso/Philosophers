@@ -31,6 +31,7 @@ typedef struct s_philo
     unsigned int should_eat_counter;
     unsigned int left_fork;
     unsigned int right_fork;
+    size_t       time_start_eating;
     int status;
 }               t_philo;
 
@@ -89,7 +90,6 @@ long long	ft_atoi(const char *s);
 void *born_philo(void *venv);
 
 void philo_says(unsigned int id, size_t time, const char *msg, t_env *env);
-_Bool eating(unsigned int id, t_env *env);
 size_t get_timestamp();
 
 
