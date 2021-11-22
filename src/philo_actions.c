@@ -23,19 +23,35 @@ void philo_says(unsigned int id, size_t time, const char *msg, t_env *env)
     pthread_mutex_unlock(&env->printer_lock);
 }
 
+// static inline _Bool eating(unsigned int id, t_env *env)
+// {
+//     env->philos[id].status = WAITING_FORKS;
+//     // add condition to stop trying to eat if is already eat should_eat_counter times.
+//     while (true)
+//     {
+//         get_forks(id, env);
+//         if (env->is_end || (get_timestamp() - env->philos[id].time_start_eating) > env->die_time)
+//             return (false);
+//         if (env->philos[id].status != WAITING_FORKS)
+//             break;
+//         // usleep(1000);
+//     }
+//     philo_says(id , get_timestamp(), EATING_MSG, env);
+//     env->philos[id].eat_counter++;
+//     env->philos[id].time_start_eating = get_timestamp();
+//     usleep(env->eating_time);
+//     set_forks_with_lock(id, FORK_FREE, env);
+//     return (true);
+// }
+
 static inline _Bool eating(unsigned int id, t_env *env)
 {
     env->philos[id].status = WAITING_FORKS;
     // add condition to stop trying to eat if is already eat should_eat_counter times.
-    while (true)
-    {
-        if (env->is_end || (get_timestamp() - env->philos[id].time_start_eating) > env->die_time)
-            return (false);
-        get_forks(id, env);
-        if (env->philos[id].status != WAITING_FORKS)
-            break;
-        // usleep(1000);
-    }
+
+    get_forks(id, env);
+    if (env->is_end || (get_timestamp() - env->philos[id].time_start_eating) > env->die_time)
+        return (false);
     philo_says(id , get_timestamp(), EATING_MSG, env);
     env->philos[id].eat_counter++;
     env->philos[id].time_start_eating = get_timestamp();
@@ -43,7 +59,6 @@ static inline _Bool eating(unsigned int id, t_env *env)
     set_forks_with_lock(id, FORK_FREE, env);
     return (true);
 }
-
 
 void *born_philo(void *venv)
 {
