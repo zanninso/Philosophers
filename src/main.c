@@ -8,7 +8,6 @@ _Bool get_args(int ac, char **av, t_env *env)
     env->die_time = ft_atoi(av[2]);
     env->eating_time = ft_atoi(av[3]) * 1000;
     env->sleeping_time = ft_atoi(av[4]) * 1000;
-    printf("%d, %d, %d, %d\n", env->philos_number,env->die_time, env->eating_time, env->sleeping_time);
     if (ac > 5)
         env->should_eat_counter = ft_atoi(av[5]);
     return true;
@@ -16,7 +15,7 @@ _Bool get_args(int ac, char **av, t_env *env)
 
 _Bool init(t_env *env)
 {
-    unsigned int i;
+    size_t i;
 
     env->philos = malloc(env->philos_number * sizeof(t_philo));
     env->forks = malloc(env->philos_number * sizeof(t_fork));
@@ -24,7 +23,7 @@ _Bool init(t_env *env)
     i = 0; 
     if (env->philos)
         while (i < env->philos_number)
-            set_fork_ids(i++, env);
+            init_philo(i++, env);
     i = 0; 
     if (env->forks)
         while (i < env->philos_number)
@@ -40,7 +39,7 @@ _Bool init(t_env *env)
 
 void destroy(t_env *env)
 {
-    unsigned int i;
+    size_t i;
 
     i = 0; 
     if (env->thread_ids)
@@ -63,10 +62,21 @@ void create_threads(t_env *env)
         pthread_create(&env->thread_ids[i], NULL, born_philo, env);
         i++;
     }
-    while (i)
+
+    while (true)
     {
-        i--;
-        pthread_join(env->thread_ids[i], NULL);
+        i = 0;
+        usleep(1000);
+        size_t current_time = get_timestamp();
+        while (i < env->philos_number)
+        {
+            if (current_time > env->philos[i].expected_death_time)
+            {
+                printf(DIED_MSG, get_timestamp(), i);
+                return;
+            }
+            i++;
+        }
     }
 }
 
@@ -77,7 +87,6 @@ int main(int ac, char **av)
     memset(&env, 0, sizeof(t_env));
     if (get_args(ac, av, &env) && init(&env))
     {
-        printf("%d, %d, %d, %d\n", env.philos_number,env.die_time, env.eating_time, env.sleeping_time);
         create_threads(&env);
     }
     destroy(&env);

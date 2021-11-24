@@ -7,75 +7,61 @@ inline size_t get_timestamp()
     return (((long long)now.tv_sec)*1000)+(now.tv_usec/1000);
 }
 
-unsigned int get_id(t_env *env)
+void init_philo(size_t id, t_env *env)
 {
-    unsigned int id;
-    pthread_mutex_lock(&env->born_lock);
-    id = env->current_id++;
-    pthread_mutex_unlock(&env->born_lock);
-    return (id);
+    const int n = env->philos_number;
+
+    env->philos[id].forks = env->forks;
+    env->philos[id].id = id;
+    env->philos[id].right_fork = &env->forks[(id + n - !(id % 2)) % n];
+    env->philos[id].left_fork = &env->forks[(id + n - (id % 2)) % n];
+    env->philos[id].eat_counter = 0;
+    env->philos[id].die_time = env->die_time;
+    env->philos[id].eating_time = env->eating_time;
+    env->philos[id].sleeping_time = env->sleeping_time;
+    env->philos[id].status = LIVE;
+    pthread_mutex_init(&env->philos[id].check_death_lock, NULL);
+    printf("foks:%lu, %lu\n", env->philos[id].right_fork, env->philos[id].left_fork);
 }
 
-void philo_says(unsigned int id, size_t time, const char *msg, t_env *env)
+static inline _Bool eating(t_philo *philo)
 {
-    pthread_mutex_lock(&env->printer_lock);
-    printf(msg, time, id);
-    pthread_mutex_unlock(&env->printer_lock);
-}
+    size_t current_time;
 
-// static inline _Bool eating(unsigned int id, t_env *env)
-// {
-//     env->philos[id].status = WAITING_FORKS;
-//     // add condition to stop trying to eat if is already eat should_eat_counter times.
-//     while (true)
-//     {
-//         get_forks(id, env);
-//         if (env->is_end || (get_timestamp() - env->philos[id].time_start_eating) > env->die_time)
-//             return (false);
-//         if (env->philos[id].status != WAITING_FORKS)
-//             break;
-//         // usleep(1000);
-//     }
-//     philo_says(id , get_timestamp(), EATING_MSG, env);
-//     env->philos[id].eat_counter++;
-//     env->philos[id].time_start_eating = get_timestamp();
-//     usleep(env->eating_time);
-//     set_forks_with_lock(id, FORK_FREE, env);
-//     return (true);
-// }
-
-static inline _Bool eating(unsigned int id, t_env *env)
-{
-    env->philos[id].status = WAITING_FORKS;
     // add condition to stop trying to eat if is already eat should_eat_counter times.
-
-    get_forks(id, env);
-    if (env->is_end || (get_timestamp() - env->philos[id].time_start_eating) > env->die_time)
-        return (false);
-    philo_says(id , get_timestamp(), EATING_MSG, env);
-    env->philos[id].eat_counter++;
-    env->philos[id].time_start_eating = get_timestamp();
-    usleep(env->eating_time);
-    set_forks_with_lock(id, FORK_FREE, env);
-    return (true);
+    if (get_forks(philo))
+    {
+        pthread_mutex_lock(&philo->check_death_lock);
+        if (philo->status == LIVE && !*philo->simulation_terminated)
+        {
+            philo->eat_counter++;
+            philo->expected_death_time = get_timestamp() +  philo->die_time;
+            pthread_mutex_unlock(&philo->check_death_lock);
+            printf(EATING_MSG , current_time, philo->id);
+            usleep(philo->eating_time);
+            drop_forks(philo);
+            return(true);
+        }
+        drop_forks(philo);
+        pthread_mutex_unlock(&philo->check_death_lock);
+    }
+    return (false);
 }
 
-void *born_philo(void *venv)
+void *born_philo(void *vphilo)
 {
-    unsigned int id;
-    t_env *env;
+    size_t id;
+    t_philo *philo;
 
-    env = venv;
-    id = get_id(env);
-    philo_says(id, get_timestamp(), BORN_MSG, env);
-    env->philos[id].time_start_eating = get_timestamp();
-    while (eating(id, env))
+    philo = vphilo;
+    philo->expected_death_time = get_timestamp() + philo->die_time;
+    while (!*philo->simulation_terminated && eating(philo))
     {
-        philo_says(id ,get_timestamp(), SLEEPING_MSG, env);
-        usleep(env->sleeping_time);
-        philo_says(id ,get_timestamp(), THINKING_MSG, env);
+        printf(SLEEPING_MSG, get_timestamp(), id);
+        sleep(philo->sleeping_time);
+        printf(THINKING_MSG, get_timestamp(), id);
     }
-    env->is_end = true;
-    philo_says(id, get_timestamp(), DIED_MSG, env);
+    if (philo->status == DIED)
+        printf(DIED_MSG, get_timestamp(), id);
     return (NULL);
 }

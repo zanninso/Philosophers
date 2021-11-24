@@ -1,12 +1,12 @@
 CC = gcc
 NAME = philosophers
-CFLAGS = -Wall -Wextra -Werror -g
+CFLAGS = -Wall -Wextra -Werror
 FILES = src/forks.o src/main.o src/philo_actions.o src/tools.o
 
 all:$(NAME)
 
 $(NAME): $(FILES)
-	$(CC) -g $(FILES) -o   $(NAME)
+	$(CC) -pthread -g $(FILES) -o   $(NAME)
 
 %.o:%.c
 	$(CC) $(CFLAGS) -c $< -o $@
