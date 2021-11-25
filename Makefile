@@ -1,6 +1,6 @@
 CC = gcc
 NAME = philosophers
-CFLAGS = -Wall -Wextra -Werror
+CFLAGS = -Wall -Wextra -Werror -g
 FILES = src/forks.o src/main.o src/philo_actions.o src/tools.o
 
 all:$(NAME)
