@@ -3,6 +3,22 @@
 #include <unistd.h>
 #include "philo.h"
 
+ft_print(int action, const char *msg, size_t time, size_t id)
+{
+    static sem_t *lock;
+
+    if (action == PRINTER_PRINT)
+    {
+        sem_wait(lock);
+        printf(msg, time, id);
+        sem_post(lock);
+    }
+    else if (action == PRINTER_INIT)
+        lock = sem_open("printer_lock", O_CREAT, S_IRUSR | S_IWUSR , 1);
+    else
+        sem_close(lock);
+}
+
 static int	ft_isdigit(int c)
 {
 	return (c >= '0' && c <= '9');

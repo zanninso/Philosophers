@@ -9,7 +9,7 @@ _Bool get_args(int ac, char **av, t_env *env)
     env->eating_time = ft_atoi(av[3]);
     env->sleeping_time = ft_atoi(av[4]);
     if (ac > 5)
-        env->should_eat_counter = ft_atoi(av[5]);
+        env->nb_meals = ft_atoi(av[5]);
     return true;
 }
 
@@ -36,44 +36,70 @@ void watch_death(t_env *env)
     }
 }
 
-void create_threads(t_env *env)
+void kill_process(t_env *env, pid_t *pids)
+{
+    while (env->id)
+    {
+        env->id--;
+        kill(pids[env->id], SIGKILL);
+    }
+}
+
+_Bool lunch_process(t_env *env, pid_t *pids)
+{
+    while (env->id < env->philos_number)
+    {
+        env->id++;
+        pids[env->id - 1] = fork();
+        if (pids[env->id - 1] == 0)
+            routine(env);
+        if (pids[env->id - 1] == -1)
+        {
+            kill_process(env, pids);
+            return (false);
+        }
+    }
+    return (true);
+}
+
+void wait_process(t_env *env, pid_t *pids)
 {
     size_t i;
+    int status;
+    _Bool waiting;
 
-    while (env->nb_init_threads < env->philos_number)
+    waiting = true;
+    while (waiting)
     {
-        i = env->nb_init_threads;
-        if (pthread_create(&env->thread_ids[i], NULL, routine, &env->philos[i]))
+        i = 0;
+        waiting = false;
+        while (i < env->philos_number)
         {
-            env->simulation_terminated = true;
-            break;
+            if (pids[i]) 
+            {
+                waiting = true;
+                waitpid(pids[i], &status, WNOHANG);
+                if (WIFEXITED(status) && WEXITSTATUS(status))
+                    return (kill_process(env, pids));
+                else if (WIFEXITED(status))
+                    pids[i] = 0;
+            }
         }
-        env->nb_init_threads++;
-    }
-    if (env->nb_init_threads == env->philos_number)
-        watch_dead(env);
-    i = 0;
-    while (i < env->nb_init_threads)
-    {
-        pthread_join(env->thread_ids[i], NULL);
-        i++;
     }
 }
 
 int main(int ac, char **av)
 {
     t_env env;
+    pid_t pids[200];
 
     memset(&env, 0, sizeof(t_env));
     if (get_args(ac, av, &env))
     {
-        env.thread_ids = malloc(env.philos_number * sizeof(pthread_t));
-        if (env.thread_ids && init_forks(&env) && init_philos(&env))
+        if (init_forks(&env) && lunch_process(&env, pids))
         {
-            create_threads(&env);
+            wait_process(&env, pids);
         }
     }
-    free(env.thread_ids);
-    destroy_philos(&env);
     destroy_forks(&env);
 }
