@@ -1,105 +1,80 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   main.c                                             :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: aait-ihi <aait-ihi@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2021/11/25 23:12:48 by aait-ihi          #+#    #+#             */
+/*   Updated: 2021/11/25 23:14:44 by aait-ihi         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "philo.h"
 
-_Bool get_args(int ac, char **av, t_env *env)
+_Bool	get_args(int ac, char **av, t_philo *philo)
 {
-    if (ac < 5)
-        return (false);
-    env->philos_number = ft_atoi(av[1]);
-    env->die_time = ft_atoi(av[2]);
-    env->eating_time = ft_atoi(av[3]);
-    env->sleeping_time = ft_atoi(av[4]);
-    if (ac > 5)
-        env->nb_meals = ft_atoi(av[5]);
-    return true;
+	if (ac < 5)
+		return (false);
+	philo->philos_number = ft_atoi(av[1]);
+	philo->die_time = ft_atoi(av[2]);
+	philo->eating_time = ft_atoi(av[3]);
+	philo->sleeping_time = ft_atoi(av[4]);
+	if (ac > 5)
+		philo->nb_meals = ft_atoi(av[5]);
+	if (!philo->philos_number || philo->philos_number > 200 || !philo->die_time)
+	{
+		printf(ERROR_INVALID_ARG);
+		return (false);
+	}
+	return (true);
 }
 
-void watch_death(t_env *env)
+void	kill_process(t_philo *philo, pid_t *pids)
 {
-    size_t i;
-
-    while (true)
-    {
-        i = 0;
-        while (i < env->philos_number)
-        {
-            pthread_mutex_lock(&env->philos[i].check_death_lock);
-            if (get_timestamp() > env->philos[i].expected_death_time)
-            {
-                env->philos[i].status = DEAD;
-                env->simulation_terminated = true;
-                pthread_mutex_unlock(&env->philos[i].check_death_lock);
-                return;
-            }
-            pthread_mutex_unlock(&env->philos[i].check_death_lock);
-            i++;
-        }
-    }
+	while (philo->id)
+	{
+		philo->id--;
+		kill(pids[philo->id], SIGKILL);
+	}
 }
 
-void kill_process(t_env *env, pid_t *pids)
+_Bool	lunch_process(t_philo *philo, pid_t *pids)
 {
-    while (env->id)
-    {
-        env->id--;
-        kill(pids[env->id], SIGKILL);
-    }
+	while (philo->id < philo->philos_number)
+	{
+		philo->id++;
+		pids[philo->id - 1] = fork();
+		if (pids[philo->id - 1] == 0)
+			routine(philo);
+		if (pids[philo->id - 1] == -1)
+		{
+			kill_process(philo, pids);
+			return (false);
+		}
+	}
+	return (true);
 }
 
-_Bool lunch_process(t_env *env, pid_t *pids)
+int	main(int ac, char **av)
 {
-    while (env->id < env->philos_number)
-    {
-        env->id++;
-        pids[env->id - 1] = fork();
-        if (pids[env->id - 1] == 0)
-            routine(env);
-        if (pids[env->id - 1] == -1)
-        {
-            kill_process(env, pids);
-            return (false);
-        }
-    }
-    return (true);
-}
+	t_philo	philo;
+	pid_t	pids[200];
 
-void wait_process(t_env *env, pid_t *pids)
-{
-    size_t i;
-    int status;
-    _Bool waiting;
-
-    waiting = true;
-    while (waiting)
-    {
-        i = 0;
-        waiting = false;
-        while (i < env->philos_number)
-        {
-            if (pids[i]) 
-            {
-                waiting = true;
-                waitpid(pids[i], &status, WNOHANG);
-                if (WIFEXITED(status) && WEXITSTATUS(status))
-                    return (kill_process(env, pids));
-                else if (WIFEXITED(status))
-                    pids[i] = 0;
-            }
-        }
-    }
-}
-
-int main(int ac, char **av)
-{
-    t_env env;
-    pid_t pids[200];
-
-    memset(&env, 0, sizeof(t_env));
-    if (get_args(ac, av, &env))
-    {
-        if (init_forks(&env) && lunch_process(&env, pids))
-        {
-            wait_process(&env, pids);
-        }
-    }
-    destroy_forks(&env);
+	memset(&philo, 0, sizeof(t_philo));
+	errno = 0;
+	if (get_args(ac, av, &philo))
+	{
+		ft_print(PRINTER_UNLINK, "", 0, 0);
+		ft_print(PRINTER_INIT, "", 0, 0);
+		init_forks(&philo);
+		if (lunch_process(&philo, pids))
+		{
+			sem_wait(philo.kill_philos);
+			kill_process(&philo, pids);
+		}
+		ft_print(PRINTER_UNLINK, "", 0, 0);
+		ft_print(PRINTER_DESTROY, "", 0, 0);
+		destroy_forks(&philo);
+	}
 }
