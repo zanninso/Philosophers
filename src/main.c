@@ -21,7 +21,7 @@ _Bool	get_args(int ac, char **av, t_env *env)
 	env->eating_time = ft_atoi(av[3]);
 	env->sleeping_time = ft_atoi(av[4]);
 	if (ac > 5)
-		env->nb_meals = ft_atoi(av[5]);
+		env->nb_meals = ft_atoi(av[5]) * env->philos_number;
 	if (!env->philos_number || env->philos_number > 200 || !env->die_time)
 	{
 		printf(ERROR_INVALID_ARG);
@@ -85,12 +85,12 @@ int	main(int ac, char **av)
 	if (get_args(ac, av, &env))
 	{
 		env.thread_ids = malloc(env.philos_number * sizeof(pthread_t));
-		if (env.thread_ids && init_forks(&env) && init_philos(&env))
+		if (env.thread_ids && init_forks(&env) && init_philos(&env, env.philos_number, 0))
 		{
 			create_threads(&env);
 		}
 	}
 	free(env.thread_ids);
-	destroy_philos(&env);
 	destroy_forks(&env);
+	destroy_philos(&env);
 }

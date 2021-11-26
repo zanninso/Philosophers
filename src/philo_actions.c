@@ -12,14 +12,13 @@
 
 #include "philo.h"
 
-_Bool	init_philos(t_env *env)
+_Bool	init_philos(t_env *env, size_t n, size_t id)
 {
-	const size_t	n = env->philos_number;
-	size_t			id;
-
-	env->philos = malloc(env->philos_number * sizeof(t_philo));
+	if (!pthread_mutex_init(&env->left_meals_lock, NULL))
+		env->philos = malloc(env->philos_number * sizeof(t_philo));
 	if (env->philos)
 	{
+		memset(env->philos, 0, sizeof(t_philo));
 		while (env->nb_init_plocks < n)
 		{
 			id = env->nb_init_plocks;
@@ -28,13 +27,13 @@ _Bool	init_philos(t_env *env)
 			env->philos[id].id = id;
 			env->philos[id].right_fork = &env->forks[(id + n - !(id % 2)) % n];
 			env->philos[id].left_fork = &env->forks[(id + n - (id % 2)) % n];
-			env->philos[id].eat_counter = 0;
+			env->philos[id].left_meals = &env->nb_meals;
+			env->philos[id].left_meals_lock = &env->left_meals_lock;
 			env->philos[id].die_time = env->die_time;
 			env->philos[id].eating_time = env->eating_time;
 			env->philos[id].sleeping_time = env->sleeping_time;
-			env->philos[id].status = LIVE;
+			env->philos[id].nb_meals = env->nb_meals / env->philos_number;
 			env->philos[id].simulation_terminated = &env->simulation_terminated;
-			env->philos[id].expected_death_time = 0;
 			env->nb_init_plocks++;
 		}
 	}
@@ -55,6 +54,7 @@ void	destroy_philos(t_env *env)
 		}
 		free(env->philos);
 	}
+	pthread_mutex_destroy(&env->left_meals_lock);
 }
 
 static inline _Bool	eating(t_philo *philo)
@@ -78,6 +78,21 @@ static inline _Bool	eating(t_philo *philo)
 	return (false);
 }
 
+void wait_others_end(t_philo *philo)
+{
+	pthread_mutex_lock(philo->left_meals_lock);
+	*philo->left_meals = *philo->left_meals - 1;
+	pthread_mutex_unlock(philo->left_meals_lock);	
+	while (!*philo->simulation_terminated && *philo->left_meals)
+	{
+		pthread_mutex_lock(&philo->check_death_lock);
+		philo->expected_death_time = get_timestamp() + 10;
+		ft_sleep(1);
+		pthread_mutex_unlock(&philo->check_death_lock);	
+	}
+	philo->expected_death_time = get_timestamp() - 1;
+}
+
 void	*routine(void *vphilo)
 {
 	const size_t	id = ((t_philo*)vphilo)->id;
@@ -89,6 +104,11 @@ void	*routine(void *vphilo)
 	{
 		printf(SLEEPING_MSG, get_timestamp(), id);
 		ft_sleep(philo->sleeping_time);
+		if (philo->nb_meals == philo->eat_counter)
+		{
+			wait_others_end(philo);
+			return (NULL) ;
+		}
 		printf(THINKING_MSG, get_timestamp(), id);
 	}
 	if (philo->status == DEAD)

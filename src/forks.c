@@ -14,12 +14,15 @@
 
 _Bool	init_forks(t_env *env)
 {
+	size_t last_user;
+	
 	env->forks = malloc(env->philos_number * sizeof(t_fork));
 	if (env->forks)
 	{
 		while (env->nb_init_flocks < env->philos_number)
 		{
-			env->forks[env->nb_init_flocks].last_user = env->philos_number;
+			last_user = (env->nb_init_flocks + env->nb_init_flocks % 2) % env->philos_number;
+			env->forks[env->nb_init_flocks].last_user = last_user;
 			if (pthread_mutex_init(&env->forks[env->nb_init_flocks].lock, NULL))
 				return (false);
 			env->nb_init_flocks++;

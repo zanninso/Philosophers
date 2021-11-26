@@ -47,6 +47,7 @@ typedef struct s_philo
 	t_fork			*right_fork;
 	_Bool			*simulation_terminated;
 	pthread_mutex_t	check_death_lock;
+	pthread_mutex_t	*left_meals_lock;
 	size_t			id;
 	size_t			eat_counter;
 	size_t			expected_death_time;
@@ -59,21 +60,21 @@ typedef struct s_philo
 
 typedef struct s_env
 {
-	t_philo		*philos;
-	t_fork		*forks;
-	pthread_t	*thread_ids;
-	size_t		philos_number;
-	size_t		should_eat_counter;
-	size_t		sleeping_time;
-	size_t		thinking_time;
-	size_t		eating_time;
-	size_t		die_time;
-	size_t		nb_init_flocks;
-	size_t		nb_init_plocks;
-	size_t		nb_init_threads;
-	size_t		nb_meals;
-	size_t		*left_meals;
-	_Bool		simulation_terminated;
+	t_philo			*philos;
+	t_fork			*forks;
+	pthread_t		*thread_ids;
+	pthread_mutex_t	left_meals_lock;
+	size_t			philos_number;
+	size_t			should_eat_counter;
+	size_t			sleeping_time;
+	size_t			thinking_time;
+	size_t			eating_time;
+	size_t			die_time;
+	size_t			nb_init_flocks;
+	size_t			nb_init_plocks;
+	size_t			nb_init_threads;
+	size_t			nb_meals;
+	_Bool			simulation_terminated;
 }				t_env;
 
 enum
@@ -109,7 +110,7 @@ void		drop_forks(t_philo *philo);
 void		*ft_memcpy(void *vdest, void *vsrc, size_t size);
 long long	ft_atoi(const char *s);
 
-_Bool		init_philos(t_env *env);
+_Bool		init_philos(t_env *env, size_t n, size_t id);
 void		destroy_philos(t_env *env);
 void		*routine(void *venv);
 
