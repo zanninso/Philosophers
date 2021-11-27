@@ -6,7 +6,7 @@
 /*   By: aait-ihi <aait-ihi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/11/25 23:15:13 by aait-ihi          #+#    #+#             */
-/*   Updated: 2021/11/25 23:19:00 by aait-ihi         ###   ########.fr       */
+/*   Updated: 2021/11/27 20:09:51 by aait-ihi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,9 +31,10 @@ static void	*watch_death(void *vphilo)
 	t_philo	*philo;
 
 	philo = vphilo;
+	philo->expected_death_time = get_timestamp() + philo->die_time;
 	while (true)
 	{
-		usleep(100);
+		sleep(100);
 		sem_wait(philo->check_death_lock);
 		if (get_timestamp() > philo->expected_death_time)
 			exit_routine(DEAD, DEAD_MSG, get_timestamp(), philo);
@@ -51,9 +52,9 @@ static inline void	eating(t_philo *philo)
 	philo->eat_counter++;
 	current_time = get_timestamp();
 	philo->expected_death_time = current_time + philo->die_time;
-	sem_post(philo->check_death_lock);
 	ft_print(PRINTER_PRINT, EATING_MSG, current_time, philo->id);
 	ft_sleep(philo->eating_time);
+	sem_post(philo->check_death_lock);
 	drop_forks(philo);
 }
 
@@ -67,7 +68,6 @@ void	routine(t_philo *philo)
 	if (pthread_create(&tid, NULL, watch_death, philo))
 		exit_routine(DEAD, ERROR_THREAD_CREATION, 0, philo);
 	pthread_detach(tid);
-	philo->expected_death_time = get_timestamp() + philo->die_time;
 	while (true)
 	{
 		eating(philo);

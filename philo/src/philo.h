@@ -6,7 +6,7 @@
 /*   By: aait-ihi <aait-ihi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/11/25 23:50:32 by aait-ihi          #+#    #+#             */
-/*   Updated: 2021/11/25 23:53:27 by aait-ihi         ###   ########.fr       */
+/*   Updated: 2021/11/26 15:14:55 by aait-ihi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,7 +21,8 @@
 # include <sys/time.h>
 
 # define ERROR_THREAD_CREATION "error accure during thread creation\n"
-# define ERROR_INVALID_ARG "invalide arguments given!\n"
+# define ERROR_INVALID_ARGS "invalide arguments given!\n"
+# define ERROR_INVALID_ARG_NUMBER "invalide argument number!\n"
 
 # define TRY_TAKE_FORK_MSG "%15lu %lu is trying to take a fork\n"
 # define FORK_TAKEN_MSG "%15lu %lu has taken a fork\n"
@@ -74,13 +75,15 @@ typedef struct s_env
 	size_t			nb_init_plocks;
 	size_t			nb_init_threads;
 	size_t			nb_meals;
+	size_t			left_meals;
 	_Bool			simulation_terminated;
 }				t_env;
 
 enum
 {
 	LIVE,
-	DEAD
+	DEAD,
+	EATING
 };
 
 enum

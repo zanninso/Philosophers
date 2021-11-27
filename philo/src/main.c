@@ -6,7 +6,7 @@
 /*   By: aait-ihi <aait-ihi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/11/25 23:41:06 by aait-ihi          #+#    #+#             */
-/*   Updated: 2021/11/25 23:41:43 by aait-ihi         ###   ########.fr       */
+/*   Updated: 2021/11/26 15:35:40 by aait-ihi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,16 +15,20 @@
 _Bool	get_args(int ac, char **av, t_env *env)
 {
 	if (ac < 5)
+	{
+		printf(ERROR_INVALID_ARG_NUMBER);
 		return (false);
+	}
 	env->philos_number = ft_atoi(av[1]);
+	env->left_meals = env->philos_number;
 	env->die_time = ft_atoi(av[2]);
 	env->eating_time = ft_atoi(av[3]);
 	env->sleeping_time = ft_atoi(av[4]);
 	if (ac > 5)
-		env->nb_meals = ft_atoi(av[5]) * env->philos_number;
-	if (!env->philos_number || env->philos_number > 200 || !env->die_time)
+		env->nb_meals = ft_atoi(av[5]);
+	if (!env->philos_number || !env->die_time)
 	{
-		printf(ERROR_INVALID_ARG);
+		printf(ERROR_INVALID_ARGS);
 		return (false);
 	}
 	return (true);
@@ -40,7 +44,8 @@ void	watch_death(t_env *env)
 		while (i < env->philos_number)
 		{
 			pthread_mutex_lock(&env->philos[i].check_death_lock);
-			if (get_timestamp() > env->philos[i].expected_death_time)
+			if (env->philos[i].status == LIVE
+				&& get_timestamp() > env->philos[i].expected_death_time)
 			{
 				env->philos[i].status = DEAD;
 				env->simulation_terminated = true;
@@ -85,7 +90,8 @@ int	main(int ac, char **av)
 	if (get_args(ac, av, &env))
 	{
 		env.thread_ids = malloc(env.philos_number * sizeof(pthread_t));
-		if (env.thread_ids && init_forks(&env) && init_philos(&env, env.philos_number, 0))
+		if (env.thread_ids && init_forks(&env)
+			&& init_philos(&env, env.philos_number, 0))
 		{
 			create_threads(&env);
 		}
